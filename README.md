@@ -44,6 +44,28 @@ curl -X GET "http://localhost:8080/practitioners/810000000000"
 ```
 (Retourne 200 OK avec le DTO du praticien, ou 404 Not Found si totalement introuvable).
 
+### 3. Payload JSON
+```JSON
+{
+  "rppsId": "",
+  "name": "",
+  "professionCode": "",
+  "specialtyCode": "",
+  "exerciceMode": "",
+  "locations": [
+    {
+      "facilityName": "",
+      "streetNumber": "",
+      "street": "",
+      "zipCode": "",
+      "city": "",
+      "latitude": null,
+      "longitude": null
+    }
+  ]
+}
+
+```
 ⚙️ Installation & Lancement
 
 S'assurer qu'une instance PostgreSQL est en cours d'exécution avec les identifiants configurés dans application.properties (ou .yml).
