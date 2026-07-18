@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
@@ -19,8 +20,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 @WebMvcTest(RppsController.class)
+@WithMockUser(username = "admin", roles = {"USER", "ADMIN"})
 class RppsControllerTest {
 
     @Autowired
@@ -36,7 +39,7 @@ class RppsControllerTest {
     void testTriggerImport_Success() throws Exception {
         doNothing().when(ingestionService).importRppsData();
 
-        mockMvc.perform(post("/api/v1/rpps/import"))
+        mockMvc.perform(post("/api/v1/rpps/import").with(csrf()))
                 .andExpect(status().isOk());
     }
 
@@ -44,7 +47,7 @@ class RppsControllerTest {
     void testTriggerImport_Error() throws Exception {
         doThrow(new RuntimeException("Erreur simulée")).when(ingestionService).importRppsData();
 
-        mockMvc.perform(post("/api/v1/rpps/import"))
+        mockMvc.perform(post("/api/v1/rpps/import").with(csrf()))
                 .andExpect(status().isInternalServerError());
     }
 

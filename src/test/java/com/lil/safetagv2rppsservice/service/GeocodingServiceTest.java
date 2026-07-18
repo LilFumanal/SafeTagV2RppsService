@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
@@ -17,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class GeocodingServiceTest {
@@ -27,6 +29,9 @@ class GeocodingServiceTest {
     @Mock
     private RestTemplate restTemplate;
 
+    @Mock
+    private RabbitTemplate rabbitTemplate;
+
     // On utilise un vrai ObjectMapper pour s'épargner des mocks JSON trop complexes
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -35,7 +40,8 @@ class GeocodingServiceTest {
     @BeforeEach
     void setUp() {
         // Injection manuelle pour le test unitaire
-        geocodingService = new GeocodingService(repository, restTemplate, objectMapper);
+        geocodingService = new GeocodingService(repository, restTemplate, objectMapper, rabbitTemplate);
+        ReflectionTestUtils.setField(geocodingService, "banApiUrl", "https://api-adresse.data.gouv.fr/search/");
     }
 
     @Test
@@ -103,9 +109,10 @@ class GeocodingServiceTest {
         int processedCount = geocodingService.processGeocodingBatch();
 
         // THEN
-        assertEquals(1, processedCount); // 1 traitée avec succès
-        assertTrue(location.isGeocodingAttempted()); // Mais tentative bien marquée
-        assertNull(location.getLongitude()); // Pas de coordonnées
-        verify(repository).saveAll(any()); // On sauvegarde quand même la tentative
+        assertEquals(1, processedCount);
+        assertTrue(location.isGeocodingAttempted());
+        assertNull(location.getLongitude());
+        verify(repository).saveAll(any());
+        verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
     }
 }
