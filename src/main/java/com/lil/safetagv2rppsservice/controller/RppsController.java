@@ -3,6 +3,7 @@ package com.lil.safetagv2rppsservice.controller;
 import com.lil.safetagv2rppsservice.service.RppsIngestionService;
 import com.lil.safetagv2rppsservice.entity.RppsPractitioner;
 import com.lil.safetagv2rppsservice.repository.RppsPractitionerRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -18,12 +19,20 @@ public class RppsController {
     private final RppsIngestionService ingestionService;
     private final RppsPractitionerRepository repository;
 
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PostConstruct
+    public void init() {
+        System.out.println("=================================================");
+        System.out.println("🔥 RPPS CONTROLLER BIEN INITIALISÉ PAR SPRING ! 🔥");
+        System.out.println("=================================================");
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/import")
     public ResponseEntity<String> triggerImport(
             @RequestHeader HttpHeaders allHeaders
             ) {
         System.out.println("=== 🎯 RPPS : REQUÊTE REÇUE ===");
+
         allHeaders.forEach((key, value) -> {
             System.out.println(String.format("Header reçu -> %s : %s", key, value));
         });

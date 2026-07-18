@@ -1,6 +1,7 @@
 package com.lil.safetagv2rppsservice.service;
 
 import com.lil.safetagv2rppsservice.client.CSVClient;
+import com.lil.safetagv2rppsservice.config.RabbitMQConfig;
 import com.lil.safetagv2rppsservice.entity.PracticeLocation;
 import com.lil.safetagv2rppsservice.entity.RppsPractitioner;
 import com.lil.safetagv2rppsservice.repository.RppsPractitionerRepository;
@@ -12,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -82,10 +84,12 @@ public class RppsIngestionService {
     private static final int BATCH_SIZE = 1000;
     private final RppsPractitionerRepository repository;
     private final CSVClient csvClient;
+    private final RabbitTemplate rabbitTemplate;
 
-    public RppsIngestionService(RppsPractitionerRepository repository, CSVClient csvClient) {
+    public RppsIngestionService(RppsPractitionerRepository repository, CSVClient csvClient, RabbitTemplate rabbitTemplate) {
         this.repository = repository;
         this.csvClient = csvClient;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public void importRppsData() {
@@ -165,7 +169,8 @@ public class RppsIngestionService {
 
                     // 4. Sauvegarde si le batch est plein
                     if (batchMap.size() >= BATCH_SIZE) {
-                        repository.saveAll(batchMap.values());
+                        List<RppsPractitioner> savedBatch = repository.saveAll(batchMap.values());
+                        publishGeocodingMessages(savedBatch);
                         totalSaved += batchMap.size();
                         log.info("Batch sauvegardé. Total praticiens en cours : {}", totalSaved);
                         batchMap.clear();
@@ -232,5 +237,19 @@ public class RppsIngestionService {
 
     private String getValueOrEmpty(String[] row, int index) {
         return (row.length > index && row[index] != null) ? row[index].trim() : "";
+    }
+
+    private void publishGeocodingMessages(Collection<RppsPractitioner> practitioners) {
+        practitioners.stream()
+                .flatMap(p -> p.getLocations().stream())
+                // On ne géocode que les adresses qui n'ont pas encore de coordonnées (nouvelles ou modifiées)
+                .filter(loc -> loc.getId() != null && loc.getLatitude() == null)
+                .forEach(loc -> {
+                    try {
+                        rabbitTemplate.convertAndSend(RabbitMQConfig.GEOCODING_QUEUE, loc.getId());
+                    } catch (Exception e) {
+                        log.error("Impossible d'envoyer l'adresse {} au géocodage : {}", loc.getId(), e.getMessage());
+                    }
+                });
     }
 }

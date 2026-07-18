@@ -1,0 +1,35 @@
+### 1. Simuler l'appel à votre API Gateway / Controller Local
+# Ce endpoint doit être celui qui appelle practitionerService.getAndUpdatePractitioner("123456789")
+# Remplacez l'URL et le port par ceux de votre gateway-service ou rpps-service
+GET http://localhost:8081/api/practitioners/10007623498
+Accept: application/json
+
+### 2. Requête HTTP manuelle alternative (Si vous voulez créer/tester à la main)
+# Si vous avez un endpoint POST pour ajouter manuellement un praticien avec ses adresses :
+POST /api/practitioners HTTP/1.1
+Host: localhost:8080
+Content-Type: application/json
+
+{
+  "id": "0000607a-c491-4db4-8957-df7a25beb822",
+  "rppsId": "10007623498",
+  "name": "GUENOT ANNE",
+  "professionCode": "94",
+  "specialtyCode": "",
+  "exerciceMode": "Salarié",
+  "lastUpdated": "2026-05-12T09:17:30.881542",
+  "locations": [
+    {
+      "id": "21bebc8b-15a4-4a46-928d-6ace12ca5f56",
+      "facilityName": "INST REGIONAL DE READAPTATION NANCY",
+      "streetNumber": "75",
+      "street": "Boulevard LOBAU",
+      "zipCode": "54042",
+      "city": "Nancy",
+      "latitude": 48.686238,
+      "longitude": 6.195384,
+      "geocodingAttempted": true
+    }
+  ]
+}
+

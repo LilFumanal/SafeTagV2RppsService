@@ -1,11 +1,14 @@
 package com.lil.safetagv2rppsservice.service;
 
 import com.lil.safetagv2rppsservice.client.RppsAPIClient;
+import com.lil.safetagv2rppsservice.config.RabbitMQConfig;
 import com.lil.safetagv2rppsservice.dto.AddressDTO; // Import du DTO d'adresse
 import com.lil.safetagv2rppsservice.dto.PractitionerDTO;
 import com.lil.safetagv2rppsservice.dto.ProfessionDTO;
+import com.lil.safetagv2rppsservice.entity.PracticeLocation;
 import com.lil.safetagv2rppsservice.entity.RppsPractitioner;
 import com.lil.safetagv2rppsservice.repository.RppsPractitionerRepository;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,10 +24,12 @@ public class PractitionerService {
 
     private final RppsAPIClient rppsAPIClient;
     private final RppsPractitionerRepository repository;
+    private final RabbitTemplate rabbitTemplate;
 
-    public PractitionerService(RppsAPIClient rppsAPIClient, RppsPractitionerRepository repository){
+    public PractitionerService(RppsAPIClient rppsAPIClient, RppsPractitionerRepository repository, RabbitTemplate rabbitTemplate){
         this.rppsAPIClient = rppsAPIClient;
         this.repository = repository;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -104,7 +109,19 @@ public class PractitionerService {
         practitioner.setLastUpdated(LocalDateTime.now());
 
         // Sauvegarde l'entité mise à jour dans la base de données locale
-        return repository.save(practitioner);
+        RppsPractitioner savedPractitioner = repository.save(practitioner);
+
+        // 2. Détection et envoi à RabbitMQ pour les adresses non encore géocodées
+        if (savedPractitioner.getLocations() != null) {
+            savedPractitioner.getLocations().stream()
+                    .filter(loc -> !loc.isGeocodingAttempted()) // Seulement celles pas encore tentées
+                    .forEach(loc -> {
+                        rabbitTemplate.convertAndSend(RabbitMQConfig.GEOCODING_QUEUE, loc.getId());
+                        System.out.println("Message de géocodage envoyé à RabbitMQ pour l'adresse UUID: " + loc.getId());
+                    });
+        }
+
+        return savedPractitioner;
     }
 
     /**
@@ -120,7 +137,6 @@ public class PractitionerService {
         List<AddressDTO> addresses = entity.getLocations().stream()
                 .map(location -> new AddressDTO(location.getFacilityName(), location.getStreetNumber(), location.getStreet(), location.getZipCode(), location.getCity(), location.getLatitude(), location.getLongitude())) // Crée un AddressDTO pour chaque location
                 .collect(Collectors.toList()); // Collecte les DTO d'adresse dans une liste
-
         // 2. Préparation des professions et spécialités en List<String>
         List<String> professions = (entity.getProfessionCode() != null) ?
                 Collections.singletonList(entity.getProfessionCode()) :
