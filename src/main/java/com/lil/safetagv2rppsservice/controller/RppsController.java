@@ -47,10 +47,4 @@ public class RppsController {
             return ResponseEntity.internalServerError().body("Erreur : " + e.getMessage());
         }
     }
-    @GetMapping("/{rppsId}")
-    public ResponseEntity<RppsPractitioner> getPractitionerById(@PathVariable String rppsId) {
-        return repository.findByRppsId(rppsId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
 }

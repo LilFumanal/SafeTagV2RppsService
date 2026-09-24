@@ -2,6 +2,7 @@ package com.lil.safetagv2rppsservice.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lil.safetagv2rppsservice.config.RabbitMQConfig;
 import com.lil.safetagv2rppsservice.entity.PracticeLocation;
 import com.lil.safetagv2rppsservice.event.AddressGeocodedEvent; // NOUVEAU
 import com.lil.safetagv2rppsservice.repository.PracticeLocationRepository;
@@ -28,12 +29,6 @@ public class GeocodingService {
 
     @Value("${rpps.source.geocodingAPIUrl}")
     private String banApiUrl;
-
-    @Value("${rabbitmq.exchange.name:safetag.exchange}") // NOUVEAU
-    private String exchangeName;
-
-    @Value("${rabbitmq.routing.geocoded:address.geocoded}") // NOUVEAU
-    private String routingKey;
 
     public int processGeocodingBatch() {
         List<PracticeLocation> locations = repository.findTop50ByGeocodingAttemptedFalse();
@@ -142,6 +137,6 @@ public class GeocodingService {
                 loc.getZipCode(),
                 loc.getCity()
         );
-        rabbitTemplate.convertAndSend(exchangeName, routingKey, event);
+        rabbitTemplate.convertAndSend("", RabbitMQConfig.GEOCODING_QUEUE, event);
     }
 }

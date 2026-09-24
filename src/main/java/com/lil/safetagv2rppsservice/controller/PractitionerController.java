@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/practitioners") // On garde ton chemin initial pour ne pas casser tes tests
+@RequestMapping("/api/v1/rpps")
 public class PractitionerController {
 
     private final PractitionerService practitionerService;

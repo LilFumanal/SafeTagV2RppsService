@@ -62,6 +62,7 @@ public class PractitionerService {
             System.out.println("REPONSE API BRUTE : " + apiData);
             // Mettre à jour l'entité en utilisant les données locales comme base et en appliquant les données de l'API
             finalPractitioner = updateFromApi(localDataOpt, apiData, rppsId);
+            repository.save(finalPractitioner);
         } catch (Exception e) {
             // Si l'API est indisponible, utiliser les données locales uniquement
             System.err.println("API indisponible. Fallback local pour : " + rppsId + ". Erreur: " + e.getMessage());
