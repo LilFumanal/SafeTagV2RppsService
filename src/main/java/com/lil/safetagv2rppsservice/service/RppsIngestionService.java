@@ -156,6 +156,7 @@ public class RppsIngestionService {
                         if (existingDbOpt.isPresent()) {
                             // Mise à jour (Upsert)
                             RppsPractitioner existingInDb = existingDbOpt.get();
+                            existingInDb.getLocations().clear();
                             location.setRppsPractitioner(existingInDb);
                             existingInDb.getLocations().add(location);
                             batchMap.put(rppsId, existingInDb);
